@@ -161,3 +161,4 @@ cython_debug/
 /.idea/
 /globant-task.iml
 /poetry.lock
+/volume/

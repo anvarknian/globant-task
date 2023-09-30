@@ -1,2 +1,4 @@
+import uvicorn
+
 if __name__ == '__main__':
-    print("hello world")
+    uvicorn.run("app.main:app", host='0.0.0.0', port=8080, workers=6, reload=True)

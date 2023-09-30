@@ -1,20 +1,7 @@
 # globant-task
 
-Install deps:
+run with Docker:
 
 ```bash
-poetry install
-```
-
-Activate env and run:
-
-```bash
-poetry shell
-python -m app
-```
-
-Or, run with poetry:
-
-```bash
-poetry run python -m app
+docker compose up -d
 ```

@@ -1,0 +1,32 @@
+generator client {
+  provider             = "prisma-client-py"
+  recursive_type_depth = -1
+  interface            = "asyncio"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Employee {
+  id       Int      @id @default(autoincrement())
+  name     String
+  datetime String
+  department Department @relation(fields: [departmentId], references: [id])
+  job      Job       @relation(fields: [jobId], references: [id])
+  departmentId Int
+  jobId Int
+}
+
+model Department {
+  id       Int      @id @default(autoincrement())
+  name     String   @unique
+  employees Employee[]
+}
+
+model Job {
+  id   Int    @id @default(autoincrement())
+  job  String @unique
+  employees Employee[]
+}
