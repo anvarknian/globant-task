@@ -15,30 +15,34 @@ services:
     depends_on:
       - redis
 
-#  worker:
-#    build: .
-#    command: celery -A worker.celery worker --loglevel=info
-#    volumes:
-#      - ./project:/globant-task
-#    environment:
-#      - CELERY_BROKER_URL=redis://redis:6379/0
-#      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-#    depends_on:
-#      - app
-#      - redis
+  worker:
+    build: .
+    command: celery --app app.celery.worker worker --loglevel=info
+    volumes:
+      - ./app:/globant-task/app
+      - ./data:/globant-task/data
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - app
+      - redis
+    deploy:
+      mode: replicated
+      replicas: 6
 
   redis:
     image: redis:7
 
-#  flower:
-#    build: .
-#    command: celery --broker=redis://redis:6379/0 flower --port=5555
-#    ports:
-#      - 5555:5555
-#    environment:
-#      - CELERY_BROKER_URL=redis://redis:6379/0
-#      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-#    depends_on:
-#      - app
-#      - redis
-#      - worker
+  flower:
+    build: .
+    command: celery --broker=redis://redis:6379/0 flower --port=5555
+    ports:
+      - 5555:5555
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - app
+      - redis
+      - worker
