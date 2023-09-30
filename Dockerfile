@@ -10,9 +10,7 @@ WORKDIR /globant-task
 COPY requirements.txt /globant-task
 COPY schema.prisma /globant-task/schema.prisma
 
+
 FROM dev AS prod
 
 RUN pip install -r requirements.txt
-
-RUN prisma generate
-

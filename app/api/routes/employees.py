@@ -2,23 +2,23 @@ import datetime
 from typing import List
 
 from fastapi import UploadFile, APIRouter
-from prisma.models import departments as departments
+from prisma.models import employees as employees
 
 from app.celery.worker import insert_records_task
-from app.models.Models import Department, Response
+from app.models.Models import Employee, Response
 
 app = APIRouter()
 
 
-@app.post("/file/", name="batch_upload_departments")
-async def upload_departments(file: UploadFile):
+@app.post("/file/", name="batch_upload_employees")
+async def upload_employees(file: UploadFile):
     try:
         if not file.filename.endswith(".csv"):
             raise Exception(f"Invalid file format {file.filename} - expecting a .csv as input")
         else:
-            with open(f"data/departments/{file.filename}", "wb") as f:
+            with open(f"data/employees/{file.filename}", "wb") as f:
                 f.write(file.file.read())
-                task = insert_records_task.apply_async(args=[file.filename, "departments"])
+                task = insert_records_task.apply_async(args=[file.filename, "employees"])
                 return Response(status=task.state,
                                 msg=f"{task.id}",
                                 status_code=202,
@@ -30,22 +30,21 @@ async def upload_departments(file: UploadFile):
                         timestamp=datetime.datetime.now().isoformat())
 
 
-@app.post("/department", name="post_department")
-async def post_department(department: Department):
+@app.post("/employee", name="post_employee")
+async def post_employee(employee: Employee):
     try:
-        await departments.prisma().create(department.dict())
+        await employees.prisma().create(employee.dict())
         return Response(
             status="SUCCESS",
-            msg=f"Department {department.dict()} inserted.",
+            msg=f"Employee {employee.dict()} inserted.",
             timestamp=datetime.datetime.now().isoformat())
     except Exception as e:
         return Response(
             status="ERROR",
-            status_code=400,
-            msg=f"{e.__str__()}",
+            msg=f"{e.__str__()}", status_code=400,
             timestamp=datetime.datetime.now().isoformat())
 
 
-@app.get("/", response_model=List[Department], name="get_all_departments")
-async def get_departments():
-    return await departments.prisma().find_many()
+@app.get("/", response_model=List[Employee], name="get_all_employees")
+async def get_employees():
+    return await employees.prisma().find_many()

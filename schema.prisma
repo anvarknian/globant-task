@@ -5,28 +5,28 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = "postgresql://postgres:postgres@postgres:5432/globant"
 }
 
-model Employee {
+model employees {
   id       Int      @id @default(autoincrement())
   name     String
   datetime String
-  department Department @relation(fields: [departmentId], references: [id])
-  job      Job       @relation(fields: [jobId], references: [id])
-  departmentId Int
-  jobId Int
+  department departments @relation(fields: [department_id], references: [id])
+  job      jobs       @relation(fields: [job_id], references: [id])
+  department_id Int
+  job_id Int
 }
 
-model Department {
+model departments {
   id       Int      @id @default(autoincrement())
-  name     String   @unique
-  employees Employee[]
+  department     String   @unique
+  employees employees[]
 }
 
-model Job {
+model jobs {
   id   Int    @id @default(autoincrement())
   job  String @unique
-  employees Employee[]
+  employees employees[]
 }

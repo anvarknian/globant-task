@@ -2,22 +2,38 @@ version: '3.8'
 
 services:
 
+  postgres:
+    image: postgres:14.1-alpine
+    container_name: globant-task-postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=globant
+    ports:
+      - 5432:5432
+
+  redis:
+    image: redis:7
+
   app:
     build: .
     ports:
       - 8080:8080
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
+    command: sh -c 'prisma validate && prisma generate && prisma db push && uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload'
     volumes:
       - ./app:/globant-task/app
+      - ./data:/globant-task/data
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
       - redis
+      - postgres
 
   worker:
     build: .
-    command: celery --app app.celery.worker worker --loglevel=info
+    command: sh -c 'prisma validate && prisma generate && prisma db push && celery --app app.celery.worker worker --loglevel=debug'
     volumes:
       - ./app:/globant-task/app
       - ./data:/globant-task/data
@@ -27,12 +43,9 @@ services:
     depends_on:
       - app
       - redis
-    deploy:
-      mode: replicated
-      replicas: 6
-
-  redis:
-    image: redis:7
+#    deploy:
+#      mode: replicated
+#      replicas: 2
 
   flower:
     build: .
@@ -43,6 +56,4 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
-      - app
       - redis
-      - worker
