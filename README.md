@@ -1,12 +1,12 @@
 # globant-task
 
-DB Diagram
+#### DB Diagram:
 
-![Alt text](static/Untitled.svg)
+![Alt text](static/schema.svg)
 
+#### Application Architecture:
 
-Application Architecture:
-
+![Alt text](static/architecture.svg)
 
 run with Docker:
 
