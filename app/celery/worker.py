@@ -75,14 +75,17 @@ def read_csv(file_path):
 
 
 def insert_records(records, table_name, model_fields, connection):
+    batch_size = 1000
     try:
         cursor = connection.cursor()
         placeholders = ', '.join(['%s'] * len(model_fields))
         columns = ', '.join(model_fields)
         records_to_insert = [tuple(record) for record in records]
-        query = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
-        cursor.executemany(query, records_to_insert)
-        connection.commit()
+        for i in range(0, len(records_to_insert), batch_size):
+            batch_data = records_to_insert[i:i+batch_size]
+            query = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
+            cursor.executemany(query, batch_data)
+            connection.commit()
     except Exception as e:
         connection.rollback()
         logger.error("Error inserting records: %s", str(e))
