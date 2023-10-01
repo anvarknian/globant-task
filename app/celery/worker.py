@@ -1,11 +1,13 @@
 import csv
+import json
 import logging
 import os
 
 from celery import Celery, states
 from psycopg2 import pool
 
-from app.models.Models import Employee, Department, Job
+from app.models.Models import Employee, Department, Job, EmployeeCountByQuarter, EmployeesCountByQuarter, \
+    DepartmentsWithAboveAVGHires, DepartmentWithAboveAVGHires
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -135,3 +137,88 @@ def insert_records_task(file_name, model_type):
     except Exception as e:
         logger.error("Error in insert_records_task: %s", str(e))
         raise e
+
+
+@celery.task(name="get_analytics")
+def get_analytics(year: int, query: int):
+    response = None
+    connection = None
+    try:
+        connection = get_connection()
+        cursor = connection.cursor()
+        if query == 1:
+            sql_query = f"""
+            SELECT
+                d.department,
+                j.job,
+                SUM(CASE WHEN EXTRACT(QUARTER FROM TO_DATE(e.datetime, 'YYYY-MM-DD')) = 1 THEN 1 ELSE 0 END) AS Q1,
+                SUM(CASE WHEN EXTRACT(QUARTER FROM TO_DATE(e.datetime, 'YYYY-MM-DD')) = 2 THEN 1 ELSE 0 END) AS Q2,
+                SUM(CASE WHEN EXTRACT(QUARTER FROM TO_DATE(e.datetime, 'YYYY-MM-DD')) = 3 THEN 1 ELSE 0 END) AS Q3,
+                SUM(CASE WHEN EXTRACT(QUARTER FROM TO_DATE(e.datetime, 'YYYY-MM-DD')) = 4 THEN 1 ELSE 0 END) AS Q4
+            FROM employees AS e
+            LEFT JOIN public.departments AS d ON d.id = e.department_id
+            LEFT JOIN public.jobs AS j ON j.id = e.job_id
+            WHERE TO_DATE(e.datetime, 'YYYY-MM-DD') BETWEEN '{year}-01-01' AND '{year}-12-31'
+            GROUP BY d.department, j.job
+            ORDER BY d.department ASC, j.job ASC;
+            """
+
+            cursor.execute(sql_query)
+
+            results = cursor.fetchall()
+            response = EmployeesCountByQuarter(
+                employees=[
+                    EmployeeCountByQuarter(
+                        department=row[0],
+                        job=row[1],
+                        Q1=row[2],
+                        Q2=row[3],
+                        Q3=row[4],
+                        Q4=row[5]) for row in results
+                ]).to_dict()
+        elif query == 2:
+            sql_query = f"""
+                        WITH employee_counts AS (
+                            SELECT
+                                d.id AS department_id,
+                                d.department AS department_name,
+                                COUNT(*) AS num_employees_hired
+                            FROM
+                                employees e
+                                    INNER JOIN
+                                departments d ON e.department_id = d.id
+                            WHERE
+                                    e.datetime >= '{year}-01-01' AND e.datetime < '{year}-12-31'
+                            GROUP BY
+                                d.id, d.department
+                        ),
+                             department_mean AS (
+                                 SELECT
+                                     AVG(num_employees_hired) AS mean_employees_hired
+                                 FROM
+                                     employee_counts
+                             )
+                        SELECT
+                            ec.department_id,
+                            ec.department_name,
+                            ec.num_employees_hired
+                        FROM
+                            employee_counts ec
+                                INNER JOIN
+                            department_mean dm ON ec.num_employees_hired > dm.mean_employees_hired
+                        ORDER BY
+                            ec.num_employees_hired DESC;"""
+            cursor.execute(sql_query)
+            results = cursor.fetchall()
+            response = DepartmentsWithAboveAVGHires(
+                departments_with_above_avg_hires=[
+                    DepartmentWithAboveAVGHires(
+                        id=row[0],
+                        department=row[1],
+                        hired=row[2]) for row in results
+                ]).to_dict()
+        return response
+    except Exception as e:
+        raise e
+    finally:
+        db_pool.putconn(connection)
