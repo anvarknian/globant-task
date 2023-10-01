@@ -129,4 +129,28 @@ curl -X 'POST' \
   }'
 ```
 
+Get analytics of employees by quarter by year 2021:
 
+```bash
+curl -X 'POST' \
+  'http://localhost:8080/api/analytics/post_employee_hires_by_quarter?year=2021' \
+  -H 'accept: application/json' \
+  -d ''
+```
+
+Get analytics of department with above average hires by year 2021:
+
+```bash
+curl -X 'POST' \
+'http://localhost:8080/api/analytics/post_departments_with_above_average_hires?year=2021' \
+-H 'accept: application/json' \
+-d ''
+```
+
+Get task result by task_id (eg. 284349de-cd16-4168-8a17-4fa66d2f1f5c):
+
+```bash
+curl -X 'GET' \
+  'http://localhost:8080/api/result/results/?task_id=284349de-cd16-4168-8a17-4fa66d2f1f5c' \
+  -H 'accept: application/json'
+```
