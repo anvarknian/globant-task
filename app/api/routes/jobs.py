@@ -1,5 +1,4 @@
 import datetime
-from typing import List
 
 from fastapi import UploadFile, APIRouter
 from prisma.models import jobs as jobs

@@ -1,9 +1,9 @@
-from celery import states
-from celery.result import AsyncResult
-from fastapi import APIRouter
 from datetime import datetime
+
+from fastapi import APIRouter
+
 from app.celery.worker import get_analytics
-from app.models.Models import Response, EmployeesCountByQuarter, DepartmentsWithAboveAVGHires
+from app.models.Models import Response
 
 app = APIRouter()
 
