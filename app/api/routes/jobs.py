@@ -10,8 +10,10 @@ from app.models.Models import Job, Response
 app = APIRouter()
 
 
-@app.post("/file/", name="batch_upload_jobs")
-async def upload_jobs(file: UploadFile):
+@app.post("/file/",
+          response_model=Response,
+          name="batch_upload_jobs")
+async def upload_jobs(file: UploadFile) -> Response:
     try:
         if not file.filename.endswith(".csv"):
             raise Exception(f"Invalid file format {file.filename} - expecting a .csv as input")
@@ -26,25 +28,44 @@ async def upload_jobs(file: UploadFile):
 
     except Exception as e:
         return Response(status="ERROR",
-                        msg=f"{e.__str__()}", status_code=400,
+                        msg=f"{e.__str__()}",
+                        status_code=400,
                         timestamp=datetime.datetime.now().isoformat())
 
 
-@app.post("/job", name="post_job")
-async def post_job(job: Job):
+@app.post("/job",
+          response_model=Response,
+          name="post_job")
+async def post_job(job: Job) -> Response:
     try:
         await jobs.prisma().create(job.dict())
         return Response(
             status="SUCCESS",
+            status_code=200,
             msg=f"Job {job.dict()} inserted.",
             timestamp=datetime.datetime.now().isoformat())
     except Exception as e:
         return Response(
             status="ERROR",
-            msg=f"{e.__str__()}", status_code=400,
+            msg=f"{e.__str__()}",
+            status_code=400,
             timestamp=datetime.datetime.now().isoformat())
 
 
-@app.get("/", response_model=List[Job], name="get_all_jobs")
-async def get_jobs():
-    return await jobs.prisma().find_many()
+@app.get("/",
+         response_model=Response,
+         name="get_all_jobs")
+async def get_jobs() -> Response:
+    try:
+        res = await jobs.prisma().find_many()
+        return Response(
+            status="SUCCESS",
+            status_code=200,
+            msg=res,
+            timestamp=datetime.datetime.now().isoformat())
+    except Exception as e:
+        return Response(
+            status="ERROR",
+            status_code=400,
+            msg=f"{e.__str__()}",
+            timestamp=datetime.datetime.now().isoformat())

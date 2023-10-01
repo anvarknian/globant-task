@@ -15,12 +15,13 @@ services:
 
   redis:
     image: redis:7
-
+    ports:
+      - '6379:6379'
   app:
     build: .
     ports:
       - 8080:8080
-    command: sh -c 'prisma validate && prisma generate && prisma db push && uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload'
+    command: sh -c 'prisma validate && prisma generate && prisma db push && uvicorn app.main:app --host 0.0.0.0 --port 8080 --log-level info --reload'
     volumes:
       - ./app:/globant-task/app
       - ./data:/globant-task/data
@@ -33,7 +34,7 @@ services:
 
   worker:
     build: .
-    command: sh -c 'prisma validate && prisma generate && prisma db push && celery --app app.celery.worker worker --loglevel=debug'
+    command: sh -c 'prisma validate && prisma generate && prisma db push && celery --app app.celery.worker worker --loglevel=info'
     volumes:
       - ./app:/globant-task/app
       - ./data:/globant-task/data

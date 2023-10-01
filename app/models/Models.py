@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Type, Any
 
 from pydantic import BaseModel
 
@@ -24,7 +24,7 @@ class Job(BaseModel):
 class Response(BaseModel):
     status: str
     status_code: int = 200
-    msg: str
+    msg: Any
     timestamp: str
 
 

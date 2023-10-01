@@ -1,22 +1,18 @@
 import csv
-import json
 import logging
 import os
 
-from celery import Celery, states
+from celery import Celery
 from psycopg2 import pool
 
 from app.models.Models import Employee, Department, Job, EmployeeCountByQuarter, EmployeesCountByQuarter, \
     DepartmentsWithAboveAVGHires, DepartmentWithAboveAVGHires
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize a connection pool
 db_pool = pool.SimpleConnectionPool(
     minconn=1,
-    maxconn=5,
+    maxconn=10,
     database="globant",
     user="postgres",
     password="postgres",
@@ -82,7 +78,7 @@ def insert_records(records, table_name, model_fields, connection):
         columns = ', '.join(model_fields)
         records_to_insert = [tuple(record) for record in records]
         for i in range(0, len(records_to_insert), batch_size):
-            batch_data = records_to_insert[i:i+batch_size]
+            batch_data = records_to_insert[i:i + batch_size]
             query = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
             cursor.executemany(query, batch_data)
             connection.commit()
@@ -119,13 +115,8 @@ def insert_data_from_csv(file_name, model_type):
 
     try:
         records = [row for row in csv_data]
-
-        # Validate records
         validated_records = validate_records(records, model_type)
-
-        # Extract data from validated records
         records_to_insert = [list(record.dict().values()) for record in validated_records]
-
         insert_records(records_to_insert, table_name, model_fields, connection)
         return (len(records), len(validated_records))
     finally:

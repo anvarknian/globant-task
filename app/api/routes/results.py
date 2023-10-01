@@ -9,7 +9,9 @@ from app.models.Models import Response
 app = APIRouter()
 
 
-@app.get("/results/", name="get_task_result")
+@app.get("/results/",
+         response_model=Response,
+         name="get_task_result")
 async def get_task_result(task_id: str):
     task = AsyncResult(task_id)
     if task.successful():

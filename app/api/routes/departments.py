@@ -10,8 +10,8 @@ from app.models.Models import Department, Response
 app = APIRouter()
 
 
-@app.post("/file/", name="batch_upload_departments")
-async def upload_departments(file: UploadFile):
+@app.post("/file/", response_model=Response, name="batch_upload_departments")
+async def upload_departments(file: UploadFile) -> Response:
     try:
         if not file.filename.endswith(".csv"):
             raise Exception(f"Invalid file format {file.filename} - expecting a .csv as input")
@@ -26,16 +26,18 @@ async def upload_departments(file: UploadFile):
 
     except Exception as e:
         return Response(status="ERROR",
-                        msg=f"{e.__str__()}", status_code=400,
+                        msg=f"{e.__str__()}",
+                        status_code=400,
                         timestamp=datetime.datetime.now().isoformat())
 
 
-@app.post("/department", name="post_department")
-async def post_department(department: Department):
+@app.post("/department", response_model=Response, name="post_department")
+async def post_department(department: Department) -> Response:
     try:
         await departments.prisma().create(department.dict())
         return Response(
             status="SUCCESS",
+            status_code=200,
             msg=f"Department {department.dict()} inserted.",
             timestamp=datetime.datetime.now().isoformat())
     except Exception as e:
@@ -46,6 +48,18 @@ async def post_department(department: Department):
             timestamp=datetime.datetime.now().isoformat())
 
 
-@app.get("/", response_model=List[Department], name="get_all_departments")
-async def get_departments():
-    return await departments.prisma().find_many()
+@app.get("/", response_model=Response, name="get_all_departments")
+async def get_departments() -> Response:
+    try:
+        res = await departments.prisma().find_many()
+        return Response(
+            status="SUCCESS",
+            status_code=200,
+            msg=res,
+            timestamp=datetime.datetime.now().isoformat())
+    except Exception as e:
+        return Response(
+            status="ERROR",
+            status_code=400,
+            msg=f"{e.__str__()}",
+            timestamp=datetime.datetime.now().isoformat())

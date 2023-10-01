@@ -3,7 +3,7 @@ FROM python:3.9 AS dev
 
 # Set environment variables
 ENV PYTHONUNBUFFERED 1
-ENV PRISMA_PY_DEBUG=1
+ENV PRISMA_PY_DEBUG=0
 
 WORKDIR /globant-task
 
