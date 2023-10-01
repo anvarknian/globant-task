@@ -21,7 +21,7 @@ async def upload_employees(file: UploadFile):
                 task = insert_records_task.apply_async(args=[file.filename, "employees"])
                 return Response(status=task.state,
                                 msg=f"{task.id}",
-                                status_code=202,
+                                status_code=200,
                                 timestamp=datetime.datetime.now().isoformat())
 
     except Exception as e:

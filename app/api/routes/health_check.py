@@ -4,10 +4,10 @@ from pydantic import BaseModel
 app = APIRouter()
 
 
-class HearbeatResult(BaseModel):
+class HeartbeatResult(BaseModel):
     is_alive: bool
 
 
-@app.get("/health", response_model=HearbeatResult, name="health_check")
-def get_healthcheck() -> HearbeatResult:
-    return HearbeatResult(is_alive=True)
+@app.get("/", response_model=HeartbeatResult, name="health_check")
+def get_healthcheck() -> HeartbeatResult:
+    return HeartbeatResult(is_alive=True)

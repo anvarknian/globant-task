@@ -13,7 +13,7 @@ async def post_employee_hires_by_quarter(year: int):
     task = get_analytics.apply_async(args=[year, 1])
     return Response(status=task.state,
                     msg=f"{task.id}",
-                    status_code=202,
+                    status_code=200,
                     timestamp=datetime.now().isoformat())
 
 
@@ -32,7 +32,7 @@ async def post_departments_with_above_average_hires(year: int):
     task = get_analytics.apply_async(args=[year, 2])
     return Response(status=task.state,
                     msg=f"{task.id}",
-                    status_code=202,
+                    status_code=200,
                     timestamp=datetime.now().isoformat())
 
 
