@@ -124,7 +124,8 @@ curl -X 'POST' \
   -d '{
   "id": 0,
   "name": "Test Employee",
-  "job": 0,
+  "datetime": "2021-01-01T00:00:00.000Z",
+  "job_id": 0,
   "department_id": 0
   }'
 ```
