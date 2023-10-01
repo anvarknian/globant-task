@@ -2,7 +2,7 @@
 
 DB Diagram
 
-<iframe width="560" height="315" src='https://dbdiagram.io/embed/6519d9acffbf5169f0d3bd59'> </iframe>
+![Alt text](https://dbdiagram.io/embed/6519d9acffbf5169f0d3bd59)
 
 
 Application Architecture:
