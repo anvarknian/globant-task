@@ -162,3 +162,6 @@ cython_debug/
 /globant-task.iml
 /poetry.lock
 /volume/
+data/departments/departments.csv
+data/employees/employees.csv
+data/jobs/jobs.csv

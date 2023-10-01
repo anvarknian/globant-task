@@ -181,36 +181,38 @@ def get_analytics(year: int, query: int):
                 ]).to_dict()
         elif query == 2:
             sql_query = f"""
-                        WITH employee_counts AS (
-                            SELECT
-                                d.id AS department_id,
-                                d.department AS department_name,
-                                COUNT(*) AS num_employees_hired
-                            FROM
-                                employees e
-                                    INNER JOIN
-                                departments d ON e.department_id = d.id
-                            WHERE
-                                    e.datetime >= '{year}-01-01' AND e.datetime < '{year}-12-31'
-                            GROUP BY
-                                d.id, d.department
-                        ),
-                             department_mean AS (
-                                 SELECT
-                                     AVG(num_employees_hired) AS mean_employees_hired
-                                 FROM
-                                     employee_counts
-                             )
                         SELECT
-                            ec.department_id,
-                            ec.department_name,
-                            ec.num_employees_hired
+                            d.id AS department_id,
+                            d.department AS department_name,
+                            COUNT(*) AS num_employees_hired
                         FROM
-                            employee_counts ec
-                                INNER JOIN
-                            department_mean dm ON ec.num_employees_hired > dm.mean_employees_hired
+                            employees e
+                        INNER JOIN
+                            departments d ON e.department_id = d.id
+                        WHERE
+                            e.datetime >= '{year}-01-01' AND e.datetime <= '{year}-12-31'
+                        GROUP BY
+                            d.id, d.department
+                        HAVING
+                            COUNT(*) > (
+                                SELECT
+                                    AVG(num_employees_hired)
+                                FROM (
+                                    SELECT
+                                        d.id AS department_id,
+                                        COUNT(*) AS num_employees_hired
+                                    FROM
+                                        employees e
+                                    INNER JOIN
+                                        departments d ON e.department_id = d.id
+                                    WHERE
+                                        e.datetime >= '{year}-01-01' AND e.datetime <= '{year}-12-31'
+                                    GROUP BY
+                                        d.id
+                                ) AS subquery
+                            )
                         ORDER BY
-                            ec.num_employees_hired DESC;"""
+                            num_employees_hired DESC;"""
             cursor.execute(sql_query)
             results = cursor.fetchall()
             response = DepartmentsWithAboveAVGHires(
