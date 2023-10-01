@@ -2,7 +2,7 @@
 
 DB Diagram
 
-![Alt text](https://dbdiagram.io/embed/6519d9acffbf5169f0d3bd59)
+![Alt text](static/Untitled.svg)
 
 
 Application Architecture:
