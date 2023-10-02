@@ -1,0 +1,32 @@
+generator client {
+  provider             = "prisma-client-py"
+  recursive_type_depth = -1
+  interface            = "asyncio"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://postgres:postgres@postgres:5432/globant"
+}
+
+model employees {
+  id       Int      @id @default(autoincrement())
+  name     String
+  datetime String
+  department departments @relation(fields: [department_id], references: [id])
+  job      jobs       @relation(fields: [job_id], references: [id])
+  department_id Int
+  job_id Int
+}
+
+model departments {
+  id       Int      @id @default(autoincrement())
+  department     String   @unique
+  employees employees[]
+}
+
+model jobs {
+  id   Int    @id @default(autoincrement())
+  job  String @unique
+  employees employees[]
+}
