@@ -7,10 +7,10 @@ services:
     container_name: globant-task-postgres
     restart: always
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=globant
-      - POSTGRES_HOST_AUTH_METHOD=trust
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: globant
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
       - "5432:5432"
     networks:
@@ -21,6 +21,7 @@ services:
 
   redis:
     image: redis:7
+    container_name: globant-task-redis
     ports:
       - "6379:6379"
     networks:
@@ -28,17 +29,21 @@ services:
         aliases:
           - redis
           - localhost
+
   app:
     build: .
+    container_name: globant-task-app
     ports:
       - "8080:8080"
-    command: sh -c 'prisma validate && prisma generate && prisma db push && uvicorn app.main:app --host 0.0.0.0 --port 8080 --log-level info --reload'
+    command: >
+      sh -c 'prisma validate && prisma generate && prisma db push &&
+      uvicorn app.main:app --host 0.0.0.0 --port 8080 --log-level info --reload'
     volumes:
       - ./app:/globant-task/app
       - ./data:/globant-task/data
     environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
     depends_on:
       - redis
       - postgres
@@ -50,13 +55,14 @@ services:
 
   worker:
     build: .
-    command: sh -c 'prisma validate && prisma generate && prisma db push && celery --app app.celery.worker worker --loglevel=info'
+    command: >
+      sh -c 'prisma validate && prisma generate && celery --app app.celery.worker worker --loglevel=info'
     volumes:
       - ./app:/globant-task/app
       - ./data:/globant-task/data
     environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
     depends_on:
       - app
       - redis
@@ -66,16 +72,34 @@ services:
 
   flower:
     build: .
+    container_name: globant-task-flower
     command: celery --broker=redis://redis:6379/0 flower --port=5555
     ports:
       - "5555:5555"
     environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
     depends_on:
       - redis
     networks:
       default:
         aliases:
           - flower
+          - localhost
+
+  prisma-studio:
+    build: .
+    container_name: globant-task-prisma-studio
+    command: prisma studio --schema=./schema.prisma --browser none --port 5556
+    ports:
+      - "5556:5556"
+    volumes:
+      - ./app:/globant-task/app
+      - ./data:/globant-task/data
+    depends_on:
+      - app
+    networks:
+      default:
+        aliases:
+          - prisma-studio
           - localhost
