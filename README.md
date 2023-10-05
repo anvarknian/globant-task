@@ -159,5 +159,5 @@ curl -X 'GET' \
 Run load test:
 
 ```bash
-locust -f load_testing.py --spawn-rate 10 --users 10 --host http://localhost:8080 --autostart 
+locust -f load_testing.py --spawn-rate 1 --users 3 --host http://localhost:8080 --autostart 
 ```

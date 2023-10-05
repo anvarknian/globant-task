@@ -35,7 +35,7 @@ def filter_dict_by_keys(input_dict, key_array):
 
 
 class MyUser(HttpUser):
-    wait_time = between(1, 5)
+    # wait_time = between(1, 5)
     jobs_sent = []
     jobs_results = []
 
@@ -81,7 +81,7 @@ class MyUser(HttpUser):
             self.jobs_sent.append(post_r)
             get_r = self.get_request(result=post_r)
             while get_r['status'] == 'PENDING' and get_r['status'] != 'FAILURE':
-                sleep(2)
+                # sleep(2)
                 get_r = self.get_request(result=post_r)
             if get_r['status'] == 'FAILURE':
                 self.exceptions.append(get_r['msg'])
@@ -116,7 +116,7 @@ class MyUser(HttpUser):
                                    'departments',
                                    min_rows=min_rows,
                                    max_rows=max_rows)
-            sleep(10)
+            # sleep(10)
             self.generate_csv_file(f'employees_{id_locust_runner}.csv',
                                    ['id', 'name', 'datetime', 'job_id', 'department_id'],
                                    'employees',
