@@ -15,12 +15,12 @@ async def post_employee_hires_by_quarter(year: int) -> Response:
     try:
         task = get_analytics.apply_async(args=[year, 1])
         return Response(status=task.state,
-                        msg=f"{task.id}",
+                        msg=f"Generating Analytics...", task_id=f"{task.id}",
                         status_code=200,
                         timestamp=datetime.now().isoformat())
     except Exception as e:
         return Response(status="ERROR",
-                        msg=f"{e.__str__()}",
+                        msg=f"{e.__str__()}", task_id=f"",
                         status_code=400,
                         timestamp=datetime.now().isoformat())
 
@@ -32,11 +32,11 @@ async def post_departments_with_above_average_hires(year: int) -> Response:
     try:
         task = get_analytics.apply_async(args=[year, 2])
         return Response(status=task.state,
-                        msg=f"{task.id}",
+                        msg=f"Generating Analytics...", task_id=f"{task.id}",
                         status_code=200,
                         timestamp=datetime.now().isoformat())
     except Exception as e:
         return Response(status="ERROR",
-                        msg=f"{e.__str__()}",
+                        msg=f"{e.__str__()}", task_id=f"",
                         status_code=400,
                         timestamp=datetime.now().isoformat())

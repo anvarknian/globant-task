@@ -24,6 +24,7 @@ class Job(BaseModel):
 class Response(BaseModel):
     status: str
     status_code: int = 200
+    task_id: str
     msg: Any
     timestamp: str
 

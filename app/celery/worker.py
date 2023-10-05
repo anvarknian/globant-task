@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 db_pool = pool.SimpleConnectionPool(
     minconn=1,
-    maxconn=10,
+    maxconn=100,
     database="globant",
     user="postgres",
     password="postgres",
@@ -65,36 +65,55 @@ def get_connection():
 
 
 def read_csv(file_path):
-    with open(file_path, "r") as file:
-        csv_reader = csv.reader(file, delimiter=',')
-        return list(csv_reader)
+    try:
+        with open(file_path, "r") as file:
+            csv_reader = csv.reader(file, delimiter=',')
+            return list(csv_reader)
+    except Exception as e:
+        logger.error("Error reading csv file: %s", str(e))
+        raise
+    finally:
+        os.remove(file_path)
 
 
 def insert_records(records, table_name, model_fields, connection):
     batch_size = 1000
+    records_to_insert = [tuple(record) for record in records]
+    total_received = len(records_to_insert)
+    total_inserted = 0
+    total_skipped = 0
+
     try:
         cursor = connection.cursor()
         placeholders = ', '.join(['%s'] * len(model_fields))
         columns = ', '.join(model_fields)
-        records_to_insert = [tuple(record) for record in records]
+
         for i in range(0, len(records_to_insert), batch_size):
             batch_data = records_to_insert[i:i + batch_size]
-            query = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
+            query = (f"INSERT INTO {table_name} ({columns}) "
+                     f"VALUES ({placeholders}) "
+                     f"ON CONFLICT DO NOTHING")
             cursor.executemany(query, batch_data)
             connection.commit()
+
+            inserted = cursor.rowcount
+            skipped = len(batch_data) - inserted
+
+            total_inserted += inserted
+            total_skipped += skipped
     except Exception as e:
         connection.rollback()
         logger.error("Error inserting records: %s", str(e))
         raise
     finally:
         cursor.close()
+        return total_received, total_inserted, total_skipped
 
 
 def insert_data_from_csv(file_name, model_type):
-    connection = get_connection()
-    table_name = model_type
+    connection = None
     model_fields = None
-    full_file_path = f"data/{model_type}/{file_name}"
+    table_name = model_type
     tables = ['employees', 'jobs', 'departments']
 
     if model_type == "jobs":
@@ -109,16 +128,21 @@ def insert_data_from_csv(file_name, model_type):
     if table_name not in tables or model_fields is None:
         raise ValueError(f"Invalid model_type - {model_type}")
 
+    full_file_path = f"data/{model_type}/{file_name}"
     csv_data = read_csv(full_file_path)
     if len(csv_data) == 0:
         return
 
     try:
+        connection = get_connection()
         records = [row for row in csv_data]
         validated_records = validate_records(records, model_type)
         records_to_insert = [list(record.dict().values()) for record in validated_records]
-        insert_records(records_to_insert, table_name, model_fields, connection)
-        return (len(records), len(validated_records))
+        total_received, total_inserted, total_skipped = insert_records(records_to_insert,
+                                                                       table_name,
+                                                                       model_fields,
+                                                                       connection)
+        return len(records), len(validated_records), total_received, total_inserted, total_skipped
     finally:
         db_pool.putconn(connection)
 
@@ -126,11 +150,20 @@ def insert_data_from_csv(file_name, model_type):
 @celery.task(name="insert_records")
 def insert_records_task(file_name, model_type):
     try:
-        s, i = insert_data_from_csv(file_name, model_type)
-        return f"Sent: {s} ~ Inserted: {i} ~ Ignored: {s - i}"
+        s, i, k, p, f = insert_data_from_csv(file_name, model_type)
+        return {
+            "Total Received": s,
+            "Total Validated": i,
+            "Total Validation Ignored": s-i,
+            "Total Received For Insert": k,
+            "Total Inserted": p,
+            "Total Insert Skipped": f,
+        }
     except Exception as e:
         logger.error("Error in insert_records_task: %s", str(e))
         raise e
+    finally:
+        logger.info("Finished insert_records_task")
 
 
 @celery.task(name="get_analytics")

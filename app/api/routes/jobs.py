@@ -21,13 +21,13 @@ async def upload_jobs(file: UploadFile) -> Response:
                 f.write(file.file.read())
                 task = insert_records_task.apply_async(args=[file.filename, "jobs"])
                 return Response(status=task.state,
-                                msg=f"{task.id}",
+                                msg=f"Inserting Data...",task_id=f"{task.id}",
                                 status_code=200,
                                 timestamp=datetime.datetime.now().isoformat())
 
     except Exception as e:
         return Response(status="ERROR",
-                        msg=f"{e.__str__()}",
+                        msg=f"{e.__str__()}",task_id=f"",
                         status_code=400,
                         timestamp=datetime.datetime.now().isoformat())
 
@@ -40,13 +40,13 @@ async def post_job(job: Job) -> Response:
         await jobs.prisma().create(job.dict())
         return Response(
             status="SUCCESS",
-            status_code=200,
+            status_code=200,task_id=f"",
             msg=f"Job {job.dict()} inserted.",
             timestamp=datetime.datetime.now().isoformat())
     except Exception as e:
         return Response(
             status="ERROR",
-            msg=f"{e.__str__()}",
+            msg=f"{e.__str__()}",task_id=f"",
             status_code=400,
             timestamp=datetime.datetime.now().isoformat())
 
@@ -59,12 +59,12 @@ async def get_jobs() -> Response:
         res = await jobs.prisma().find_many()
         return Response(
             status="SUCCESS",
-            status_code=200,
+            status_code=200,task_id=f"",
             msg=res,
             timestamp=datetime.datetime.now().isoformat())
     except Exception as e:
         return Response(
             status="ERROR",
-            status_code=400,
+            status_code=400,task_id=f"",
             msg=f"{e.__str__()}",
             timestamp=datetime.datetime.now().isoformat())
