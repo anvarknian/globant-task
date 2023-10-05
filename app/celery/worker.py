@@ -72,7 +72,7 @@ def read_csv(file_path):
             os.remove(file_path)
         return result
     except FileNotFoundError as e:
-        raise FileNotFoundError(f"File not found: {file_path}")
+        raise FileNotFoundError(f"File not found: {file_path} ~ {str(e)}")
     except Exception as e:
         raise Exception(f"Error reading CSV file: {str(e)}")
 
@@ -155,7 +155,7 @@ def insert_records_task(file_name, model_type):
         return {
             "Total Received": s,
             "Total Validated": i,
-            "Total Validation Ignored": s-i,
+            "Total Validation Ignored": s - i,
             "Total Received For Insert": k,
             "Total Inserted": p,
             "Total Insert Skipped": f,

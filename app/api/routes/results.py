@@ -28,6 +28,7 @@ async def get_task_result(task_id: str):
         status_code = 500
 
     return Response(msg=result,
-                    status=state,task_id=f"{task_id}",
+                    status=state,
+                    task_id=f"{task_id}",
                     status_code=status_code,
                     timestamp=datetime.datetime.now().isoformat())

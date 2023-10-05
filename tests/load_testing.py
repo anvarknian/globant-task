@@ -1,10 +1,11 @@
 import csv
 import os
 import random
-from time import sleep
+# from time import sleep
+# from locust import between
 
 import faker
-from locust import HttpUser, task, events, between
+from locust import HttpUser, task, events
 
 fake = faker.Faker()
 
@@ -129,43 +130,7 @@ class MyUser(HttpUser):
     def on_locust_init(environment, **kw):
         @environment.web_ui.app.route("/reports")
         def home():
-            return """
-                    <html>
-                    <head>
-                    <style>
-                        body {
-                            display: flex;
-                            flex-direction: column;
-                            justify-content: center;
-                            align-items: center;
-                            height: 100vh;
-                        }
-                    
-                        a {
-                            display: inline-block;
-                            padding: 10px 20px;
-                            margin: 10px;
-                            text-align: center;
-                            text-decoration: none;
-                            background-color: #007BFF;
-                            color: #FFFFFF; 
-                            border: none;
-                            border-radius: 5px;
-                            cursor: pointer;
-                            transition: background-color 0.3s ease;
-                        }
-                    
-                        a:hover {
-                            background-color: #0056b3;
-                        }
-                    </style>
-                    </head>
-                    <body>
-                        <a href="/reports/post_request">Jobs Sent</a>
-                        <a href="/reports/get_response">Result of Jobs</a>
-                    </body>
-                    </html>
-        """
+            return """ <html> <head> <style> body { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; } a { display: inline-block; padding: 10px 20px; margin: 10px; text-align: center; text-decoration: none; background-color: #007BFF; color: #FFFFFF; border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.3s ease; } a:hover { background-color: #0056b3; } </style> </head> <body> <a href="/reports/post_request">Jobs Sent</a> <a href="/reports/get_response">Result of Jobs</a> </body> </html> """
 
         @environment.web_ui.app.route("/reports/post_request")
         def post_request_results():

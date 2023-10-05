@@ -19,13 +19,13 @@ async def upload_employees(file: UploadFile) -> Response:
                 f.write(file.file.read())
                 task = insert_records_task.apply_async(args=[file.filename, "employees"])
                 return Response(status=task.state,
-                                msg=f"Inserting Data...", task_id=f"{task.id}",
+                                msg="Inserting Data...", task_id=f"{task.id}",
                                 status_code=200,
                                 timestamp=datetime.datetime.now().isoformat())
 
     except Exception as e:
         return Response(status="ERROR",
-                        msg=f"{e.__str__()}", task_id=f"",
+                        msg=f"{e.__str__()}", task_id="",
                         status_code=400,
                         timestamp=datetime.datetime.now().isoformat())
 
@@ -37,12 +37,13 @@ async def post_employee(employee: Employee) -> Response:
         return Response(
             status="SUCCESS",
             status_code=200,
-            msg=f"Employee {employee.dict()} inserted.", task_id=f"",
+            msg=f"Employee {employee.dict()} inserted.", task_id="",
             timestamp=datetime.datetime.now().isoformat())
     except Exception as e:
         return Response(
             status="ERROR",
-            msg=f"{e.__str__()}",task_id=f"",
+            msg=f"{e.__str__()}",
+            task_id="",
             status_code=400,
             timestamp=datetime.datetime.now().isoformat())
 
@@ -53,12 +54,12 @@ async def get_employees() -> Response:
         res = await employees.prisma().find_many()
         return Response(
             status="SUCCESS",
-            status_code=200, task_id=f"",
+            status_code=200, task_id="",
             msg=res,
             timestamp=datetime.datetime.now().isoformat())
     except Exception as e:
         return Response(
             status="ERROR",
             status_code=400,
-            msg=f"{e.__str__()}", task_id=f"",
+            msg=f"{e.__str__()}", task_id="",
             timestamp=datetime.datetime.now().isoformat())
