@@ -68,12 +68,13 @@ def read_csv(file_path):
     try:
         with open(file_path, "r") as file:
             csv_reader = csv.reader(file, delimiter=',')
-            return list(csv_reader)
+            result = list(csv_reader)
+            os.remove(file_path)
+        return result
+    except FileNotFoundError as e:
+        raise FileNotFoundError(f"File not found: {file_path}")
     except Exception as e:
-        logger.error("Error reading csv file: %s", str(e))
-        raise
-    finally:
-        os.remove(file_path)
+        raise Exception(f"Error reading CSV file: {str(e)}")
 
 
 def insert_records(records, table_name, model_fields, connection):
