@@ -1,7 +1,7 @@
 import csv
 import os
 import random
-# from time import sleep
+from time import sleep
 # from locust import between
 
 import faker
@@ -70,7 +70,7 @@ class MyUser(HttpUser):
         return resp
 
     def generate_csv_file(self, filename, fieldnames, endpoint, min_rows, max_rows):
-
+        filename = f"data/{filename}"
         with open(filename, 'w', newline='') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             for entity_id in range(min_rows, max_rows):
@@ -82,7 +82,7 @@ class MyUser(HttpUser):
             self.jobs_sent.append(post_r)
             get_r = self.get_request(result=post_r)
             while get_r['status'] == 'PENDING' and get_r['status'] != 'FAILURE':
-                # sleep(2)
+                sleep(2)
                 get_r = self.get_request(result=post_r)
             if get_r['status'] == 'FAILURE':
                 self.exceptions.append(get_r['msg'])

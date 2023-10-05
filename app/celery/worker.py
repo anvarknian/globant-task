@@ -3,22 +3,12 @@ import logging
 import os
 
 from celery import Celery
-from psycopg2 import pool
 
+from app.celery.db import get_connection, db_pool
 from app.models.Models import Employee, Department, Job, EmployeeCountByQuarter, EmployeesCountByQuarter, \
     DepartmentsWithAboveAVGHires, DepartmentWithAboveAVGHires
 
 logger = logging.getLogger(__name__)
-
-db_pool = pool.SimpleConnectionPool(
-    minconn=1,
-    maxconn=100,
-    database="globant",
-    user="postgres",
-    password="postgres",
-    host="postgres",
-    port="5432"
-)
 
 celery = Celery(__name__)
 celery.conf.broker_url = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379")
@@ -55,15 +45,6 @@ def validate_records(records, model_type):
     return validated_records
 
 
-def get_connection():
-    try:
-        connection = db_pool.getconn()
-        return connection
-    except Exception as e:
-        logger.error("Error getting a database connection: %s", str(e))
-        raise
-
-
 def read_csv(file_path):
     try:
         with open(file_path, "r") as file:
@@ -77,7 +58,9 @@ def read_csv(file_path):
         raise Exception(f"Error reading CSV file: {str(e)}")
 
 
-def insert_records(records, table_name, model_fields, connection):
+def insert_records(records, table_name, model_fields):
+    connection = None
+    cursor = None
     batch_size = 1000
     records_to_insert = [tuple(record) for record in records]
     total_received = len(records_to_insert)
@@ -85,6 +68,7 @@ def insert_records(records, table_name, model_fields, connection):
     total_skipped = 0
 
     try:
+        connection = get_connection()
         cursor = connection.cursor()
         placeholders = ', '.join(['%s'] * len(model_fields))
         columns = ', '.join(model_fields)
@@ -102,17 +86,17 @@ def insert_records(records, table_name, model_fields, connection):
 
             total_inserted += inserted
             total_skipped += skipped
+        return total_received, total_inserted, total_skipped
     except Exception as e:
         connection.rollback()
         logger.error("Error inserting records: %s", str(e))
         raise
     finally:
         cursor.close()
-        return total_received, total_inserted, total_skipped
+        db_pool.putconn(connection)
 
 
 def insert_data_from_csv(file_name, model_type):
-    connection = None
     model_fields = None
     table_name = model_type
     tables = ['employees', 'jobs', 'departments']
@@ -135,17 +119,15 @@ def insert_data_from_csv(file_name, model_type):
         return
 
     try:
-        connection = get_connection()
         records = [row for row in csv_data]
         validated_records = validate_records(records, model_type)
         records_to_insert = [list(record.dict().values()) for record in validated_records]
         total_received, total_inserted, total_skipped = insert_records(records_to_insert,
                                                                        table_name,
-                                                                       model_fields,
-                                                                       connection)
+                                                                       model_fields)
         return len(records), len(validated_records), total_received, total_inserted, total_skipped
-    finally:
-        db_pool.putconn(connection)
+    except Exception as e:
+        logger.error("Error inserting records: %s", str(e))
 
 
 @celery.task(name="insert_records")
