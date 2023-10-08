@@ -1,65 +1,27 @@
-import csv
 import logging
-import os
 
 from celery import Celery
 
-from app.celery.db import get_connection, db_pool
-from app.models.Models import Employee, Department, Job, EmployeeCountByQuarter, EmployeesCountByQuarter, \
+from app.celery.db import DatabaseConnection
+from app.config import CELERY_BROKER_URL, CELERY_RESULT_BACKEND
+from app.models.Models import EmployeeCountByQuarter, EmployeesCountByQuarter, \
     DepartmentsWithAboveAVGHires, DepartmentWithAboveAVGHires
+from app.utils.queries import return_query_1, return_query_2, insert_records_query
+from app.utils.readers import read_csv
+from app.utils.validators import validate_records
 
 logger = logging.getLogger(__name__)
 
 celery = Celery(__name__)
-celery.conf.broker_url = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379")
-celery.conf.result_backend = os.environ.get("CELERY_RESULT_BACKEND", "redis://redis:6379")
 
+celery.conf.broker_url = CELERY_BROKER_URL
+celery.conf.result_backend = CELERY_RESULT_BACKEND
 
-def validate_records(records, model_type):
-    validated_records = []
-    for record in records:
-        try:
-            if model_type == "employees":
-                validated_record = Employee(
-                    id=int(record[0]),
-                    name=record[1],
-                    datetime=record[2],
-                    department_id=int(record[3]),
-                    job_id=int(record[4])
-                )
-            elif model_type == "departments":
-                validated_record = Department(
-                    id=int(record[0]),
-                    department=record[1]
-                )
-            elif model_type == "jobs":
-                validated_record = Job(
-                    id=int(record[0]),
-                    job=record[1]
-                )
-            validated_records.append(validated_record)
-        except Exception as e:
-            logger.error("Validation error for record: %s", e.__str__())
-            continue
-
-    return validated_records
-
-
-def read_csv(file_path):
-    try:
-        with open(file_path, "r") as file:
-            csv_reader = csv.reader(file, delimiter=',')
-            result = list(csv_reader)
-            os.remove(file_path)
-        return result
-    except FileNotFoundError as e:
-        raise FileNotFoundError(f"File not found: {file_path} ~ {str(e)}")
-    except Exception as e:
-        raise Exception(f"Error reading CSV file: {str(e)}")
+db = DatabaseConnection()
+db_connection = db.conn
 
 
 def insert_records(records, table_name, model_fields):
-    connection = None
     cursor = None
     batch_size = 1000
     records_to_insert = [tuple(record) for record in records]
@@ -68,52 +30,37 @@ def insert_records(records, table_name, model_fields):
     total_skipped = 0
 
     try:
-        connection = get_connection()
-        cursor = connection.cursor()
+        db.check_connection()
+        cursor = db_connection.cursor()
         placeholders = ', '.join(['%s'] * len(model_fields))
         columns = ', '.join(model_fields)
 
         for i in range(0, len(records_to_insert), batch_size):
             batch_data = records_to_insert[i:i + batch_size]
-            query = (f"INSERT INTO {table_name} ({columns}) "
-                     f"VALUES ({placeholders}) "
-                     f"ON CONFLICT DO NOTHING")
+
+            query = (insert_records_query(table_name, columns, placeholders))
             cursor.executemany(query, batch_data)
-            connection.commit()
+            db_connection.commit()
 
             inserted = cursor.rowcount
             skipped = len(batch_data) - inserted
-
             total_inserted += inserted
             total_skipped += skipped
+
         return total_received, total_inserted, total_skipped
     except Exception as e:
-        connection.rollback()
-        logger.error("Error inserting records: %s", str(e))
-        raise
+        db_connection.rollback()
+        logger.error("Error insert_records: %s", str(e))
+        raise e
     finally:
-        cursor.close()
-        db_pool.putconn(connection)
+        if cursor:
+            cursor.close()
+        logger.info("Finished insert_records")
 
 
-def insert_data_from_csv(file_name, model_type):
-    model_fields = None
-    table_name = model_type
-    tables = ['employees', 'jobs', 'departments']
-
-    if model_type == "jobs":
-        model_fields = ["id", "job"]
-
-    if model_type == "departments":
-        model_fields = ["id", "department"]
-
-    if model_type == "employees":
-        model_fields = ["id", "name", "datetime", "department_id", "job_id"]
-
-    if table_name not in tables or model_fields is None:
-        raise ValueError(f"Invalid model_type - {model_type}")
-
+def process_csv_file(file_name, model_type):
     full_file_path = f"data/{model_type}/{file_name}"
+
     csv_data = read_csv(full_file_path)
     if len(csv_data) == 0:
         return
@@ -121,26 +68,43 @@ def insert_data_from_csv(file_name, model_type):
     try:
         records = [row for row in csv_data]
         validated_records = validate_records(records, model_type)
-        records_to_insert = [list(record.dict().values()) for record in validated_records]
-        total_received, total_inserted, total_skipped = insert_records(records_to_insert,
-                                                                       table_name,
-                                                                       model_fields)
-        return len(records), len(validated_records), total_received, total_inserted, total_skipped
+        data = [list(record.dict().values()) for record in validated_records]
+        return data, len(records), len(data)
     except Exception as e:
-        logger.error("Error inserting records: %s", str(e))
+        logger.error("Error insert_data_from_csv: %s", str(e))
+        raise e
+    finally:
+        logger.info("Finished insert_data_from_csv")
 
 
-@celery.task(name="insert_records")
-def insert_records_task(file_name, model_type):
+@celery.task(name="insert_records_task")
+def insert_records_task(file_name, table_name):
+    model_fields = None
+    tables = ['employees', 'jobs', 'departments']
+
+    if table_name == "jobs":
+        model_fields = ["id", "job"]
+
+    if table_name == "departments":
+        model_fields = ["id", "department"]
+
+    if table_name == "employees":
+        model_fields = ["id", "name", "datetime", "department_id", "job_id"]
+
+    if table_name not in tables or model_fields is None:
+        raise ValueError(f"Invalid model_type - {table_name}")
+
     try:
-        s, i, k, p, f = insert_data_from_csv(file_name, model_type)
+        data, total_received, total_validated = process_csv_file(file_name, table_name)
+        total_received_insert, total_inserted, total_skipped = insert_records(data, table_name, model_fields)
+
         return {
-            "Total Received": s,
-            "Total Validated": i,
-            "Total Validation Ignored": s - i,
-            "Total Received For Insert": k,
-            "Total Inserted": p,
-            "Total Insert Skipped": f,
+            "Total Received": total_received,
+            "Total Validated": total_validated,
+            "Total Validation Ignored": total_received - total_validated,
+            "Total Received For Insert": total_received_insert,
+            "Total Inserted": total_inserted,
+            "Total Insert Skipped": total_skipped,
         }
     except Exception as e:
         logger.error("Error in insert_records_task: %s", str(e))
@@ -149,32 +113,15 @@ def insert_records_task(file_name, model_type):
         logger.info("Finished insert_records_task")
 
 
-@celery.task(name="get_analytics")
-def get_analytics(year: int, query: int):
-    response = None
-    connection = None
+@celery.task(name="get_analytics_task")
+def get_analytics_task(year: int, query: int):
+    cursor, response = None, None
     try:
-        connection = get_connection()
-        cursor = connection.cursor()
+        db.check_connection()
+        cursor = db_connection.cursor()
         if query == 1:
-            sql_query = f"""
-            SELECT
-                d.department,
-                j.job,
-                SUM(CASE WHEN EXTRACT(QUARTER FROM TO_DATE(e.datetime, 'YYYY-MM-DD')) = 1 THEN 1 ELSE 0 END) AS Q1,
-                SUM(CASE WHEN EXTRACT(QUARTER FROM TO_DATE(e.datetime, 'YYYY-MM-DD')) = 2 THEN 1 ELSE 0 END) AS Q2,
-                SUM(CASE WHEN EXTRACT(QUARTER FROM TO_DATE(e.datetime, 'YYYY-MM-DD')) = 3 THEN 1 ELSE 0 END) AS Q3,
-                SUM(CASE WHEN EXTRACT(QUARTER FROM TO_DATE(e.datetime, 'YYYY-MM-DD')) = 4 THEN 1 ELSE 0 END) AS Q4
-            FROM employees AS e
-            LEFT JOIN public.departments AS d ON d.id = e.department_id
-            LEFT JOIN public.jobs AS j ON j.id = e.job_id
-            WHERE TO_DATE(e.datetime, 'YYYY-MM-DD') BETWEEN '{year}-01-01' AND '{year}-12-31'
-            GROUP BY d.department, j.job
-            ORDER BY d.department ASC, j.job ASC;
-            """
-
+            sql_query = return_query_1(year)
             cursor.execute(sql_query)
-
             results = cursor.fetchall()
             response = EmployeesCountByQuarter(
                 employees=[
@@ -187,39 +134,7 @@ def get_analytics(year: int, query: int):
                         Q4=row[5]) for row in results
                 ]).to_dict()
         elif query == 2:
-            sql_query = f"""
-                        SELECT
-                            d.id AS department_id,
-                            d.department AS department_name,
-                            COUNT(*) AS num_employees_hired
-                        FROM
-                            employees e
-                        INNER JOIN
-                            departments d ON e.department_id = d.id
-                        WHERE
-                            e.datetime >= '{year}-01-01' AND e.datetime <= '{year}-12-31'
-                        GROUP BY
-                            d.id, d.department
-                        HAVING
-                            COUNT(*) > (
-                                SELECT
-                                    AVG(num_employees_hired)
-                                FROM (
-                                    SELECT
-                                        d.id AS department_id,
-                                        COUNT(*) AS num_employees_hired
-                                    FROM
-                                        employees e
-                                    INNER JOIN
-                                        departments d ON e.department_id = d.id
-                                    WHERE
-                                        e.datetime >= '{year}-01-01' AND e.datetime <= '{year}-12-31'
-                                    GROUP BY
-                                        d.id
-                                ) AS subquery
-                            )
-                        ORDER BY
-                            num_employees_hired DESC;"""
+            sql_query = return_query_2(year)
             cursor.execute(sql_query)
             results = cursor.fetchall()
             response = DepartmentsWithAboveAVGHires(
@@ -231,6 +146,9 @@ def get_analytics(year: int, query: int):
                 ]).to_dict()
         return response
     except Exception as e:
+        logger.error("Error in get_analytics_task: %s", str(e))
         raise e
     finally:
-        db_pool.putconn(connection)
+        if cursor:
+            cursor.close()
+        logger.info("Finished get_analytics_task")

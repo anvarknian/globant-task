@@ -1,6 +1,5 @@
 import datetime
 
-from celery import states
 from celery.result import AsyncResult
 from fastapi import APIRouter
 
@@ -13,10 +12,9 @@ app = APIRouter()
          response_model=Response,
          name="get_task_result")
 async def get_task_result(task_id: str):
-
-    result = None
-    state = states.PENDING
-    status_code = 202
+    result = f"Task Id: '{task_id}' not found."
+    state = 'NOT_FOUND'
+    status_code = 400
 
     if AsyncResult(task_id).successful():
         result = AsyncResult(task_id).get()

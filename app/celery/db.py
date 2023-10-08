@@ -1,24 +1,44 @@
 import logging
+from typing import Optional
 
-from psycopg2 import pool
+import mysql.connector
+from mysql.connector.pooling import PooledMySQLConnection
+
+from app.config import DB_CONFIG, POOL_SIZE
 
 logger = logging.getLogger(__name__)
 
-db_pool = pool.SimpleConnectionPool(
-    minconn=1,
-    maxconn=100,
-    database="globant",
-    user="postgres",
-    password="postgres",
-    host="postgres",
-    port="5432"
-)
 
+class DatabaseConnection:
+    def __init__(self):
+        logger.info("Initializing connector")
+        self.pool_size = POOL_SIZE
+        self.pool_name = "globant_pool"
+        self.db_config = DB_CONFIG
+        self.conn = self.connect()
 
-def get_connection():
-    try:
-        connection = db_pool.getconn()
-        return connection
-    except Exception as e:
-        logger.error("Error getting a database connection: %s", str(e))
-        raise
+    def connect(self) -> Optional[PooledMySQLConnection]:
+
+        try:
+
+            conn = mysql.connector.connect(
+                pool_name=self.pool_name,
+                pool_size=self.pool_size,
+                **self.db_config
+            )
+            logger.info("Connection pool created successfully")
+
+            return conn
+
+        except mysql.connector.Error as e:
+            logger.error("Error:", e)
+            return None
+
+    def is_connected(self) -> bool:
+        return self.conn.is_connected()
+
+    def check_connection(self):
+        logger.info("Checking connection")
+        if self.is_connected() is False:
+            logger.info("Connection lost, Reconnecting...")
+            self.connect()

@@ -1,32 +1,36 @@
 generator client {
   provider             = "prisma-client-py"
-  recursive_type_depth = -1
   interface            = "asyncio"
+  recursive_type_depth = "-1"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = "postgresql://postgres:postgres@postgres:5432/globant"
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
 }
 
 model employees {
-  id       Int      @id @default(autoincrement())
-  name     String
-  datetime String
-  department departments @relation(fields: [department_id], references: [id])
-  job      jobs       @relation(fields: [job_id], references: [id])
+  id            Int         @id @default(autoincrement())
+  name          String
+  datetime      String
   department_id Int
-  job_id Int
+  job_id        Int
+  department    departments @relation(fields: [department_id], references: [id])
+  job           jobs        @relation(fields: [job_id], references: [id])
+
+  @@index([department_id])
+  @@index([job_id])
 }
 
 model departments {
-  id       Int      @id @default(autoincrement())
-  department     String   @unique
-  employees employees[]
+  id         Int         @id @default(autoincrement())
+  department String
+  employees  employees[]
 }
 
 model jobs {
-  id   Int    @id @default(autoincrement())
-  job  String @unique
+  id        Int         @id @default(autoincrement())
+  job       String
   employees employees[]
 }
