@@ -8,6 +8,7 @@ from app.config import DB_CONFIG, POOL_SIZE
 
 logger = logging.getLogger(__name__)
 
+
 class DatabaseConnection:
     def __init__(self):
         self.pool_size = POOL_SIZE
