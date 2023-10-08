@@ -8,7 +8,7 @@ from app.models.Models import Response
 app = APIRouter()
 
 
-@app.get("/results/",
+@app.get("/",
          response_model=Response,
          name="get_task_result")
 async def get_task_result(task_id: str):

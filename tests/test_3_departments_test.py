@@ -35,4 +35,4 @@ def test_post_department():
 def test_get_departments():
     response = client.get("/api/departments")
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
+    assert isinstance(response.json(), dict)

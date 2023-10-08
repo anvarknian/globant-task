@@ -10,10 +10,10 @@ logger = logging.getLogger(__name__)
 
 
 class DatabaseConnection:
-    def __init__(self):
-        self.pool_size = POOL_SIZE
-        self.pool_name = "globant_pool"
-        self.db_config = DB_CONFIG
+    def __init__(self, pool_size: int = POOL_SIZE, pool_name: str = "celery_pool", db_config: dict = DB_CONFIG):
+        self.pool_size = pool_size
+        self.pool_name = pool_name
+        self.db_config = db_config
         self.conn = self.connect()
 
     def connect(self) -> Optional[PooledMySQLConnection]:

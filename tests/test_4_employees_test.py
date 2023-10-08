@@ -40,4 +40,4 @@ def test_post_employee():
 def test_get_employees():
     response = client.get("/api/employees")
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
+    assert isinstance(response.json(), dict)

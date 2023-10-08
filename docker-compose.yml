@@ -28,7 +28,7 @@ services:
   flower:
     build: .
     container_name: globant-task-flower
-    command: celery --broker=${REDIS_URL} flower --port=5555
+    command: celery --broker=${CELERY_BROKER_URL} flower --port=5555
     env_file:
       - .env
     ports:

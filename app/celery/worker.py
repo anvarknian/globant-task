@@ -124,7 +124,7 @@ def get_analytics_task(year: int, query: int):
             cursor.execute(sql_query)
             results = cursor.fetchall()
             response = EmployeesCountByQuarter(
-                employees=[
+                employees_count_by_quarters=[
                     EmployeeCountByQuarter(
                         department=row[0],
                         job=row[1],

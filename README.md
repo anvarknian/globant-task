@@ -152,12 +152,18 @@ Get task result by task_id (eg. 284349de-cd16-4168-8a17-4fa66d2f1f5c):
 
 ```bash
 curl -X 'GET' \
-  'http://localhost:8080/api/result/results/?task_id=284349de-cd16-4168-8a17-4fa66d2f1f5c' \
+  'http://localhost:8080/api/results/?task_id=284349de-cd16-4168-8a17-4fa66d2f1f5c' \
   -H 'accept: application/json'
+```
+
+Run pytest:
+
+```bash
+pytest tests
 ```
 
 Run load test:
 
 ```bash
-locust -f load_testing.py --spawn-rate 1 --users 3 --host http://localhost:8080 --autostart 
+locust -f load_testing.py --spawn-rate 1 --users 1 --host http://localhost:8080 --autostart 
 ```

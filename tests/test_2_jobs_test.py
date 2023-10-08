@@ -35,4 +35,4 @@ def test_post_job():
 def test_get_jobs(prisma_client_test):
     response = client.get("/api/jobs")
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
+    assert isinstance(response.json(), dict)

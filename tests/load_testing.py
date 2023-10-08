@@ -2,10 +2,11 @@ import csv
 import os
 import random
 from time import sleep
-# from locust import between
 
 import faker
 from locust import HttpUser, task, events
+
+# from locust import between
 
 fake = faker.Faker()
 
@@ -64,7 +65,7 @@ class MyUser(HttpUser):
         return resp
 
     def get_request(self, result):
-        get_request_results = self.client.get(f'/api/result/results/?task_id={result["task_id"]}')
+        get_request_results = self.client.get(f'/api/results/?task_id={result["task_id"]}')
         get_request_results.raise_for_status()
         resp = get_request_results.json()
         return resp

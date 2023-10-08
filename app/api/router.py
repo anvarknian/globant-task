@@ -6,7 +6,7 @@ api_router = APIRouter()
 
 api_router.include_router(health_check.app, tags=["Health"], prefix="/health")
 
-api_router.include_router(results.app, tags=["Results"], prefix="/result")
+api_router.include_router(results.app, tags=["Results"], prefix="/results")
 
 api_router.include_router(analytics.app, tags=["Analytics"], prefix="/analytics")
 

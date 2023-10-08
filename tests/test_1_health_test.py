@@ -10,5 +10,11 @@ def test_health_check():
     assert response.status_code == 200
 
     response_data = response.json()
-    assert "is_alive" in response_data
-    assert response_data["is_alive"] is True
+
+    assert isinstance(response_data, dict)
+
+    assert "is_api_alive" in response_data
+    assert response_data["is_api_alive"] is True
+
+    assert "is_db_alive" in response_data
+    assert response_data["is_db_alive"] is True

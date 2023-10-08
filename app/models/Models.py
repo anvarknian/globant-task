@@ -39,11 +39,12 @@ class EmployeeCountByQuarter(BaseModel):
 
 
 class EmployeesCountByQuarter(BaseModel):
-    employees: List[EmployeeCountByQuarter]
+    employees_count_by_quarters: List[EmployeeCountByQuarter]
 
     def to_dict(self):
         return {
-            "employees": [employee.dict() for employee in self.employees]
+            "employee_count_by_quarters":
+                [employee_count_by_quarter.dict() for employee_count_by_quarter in self.employees_count_by_quarters]
         }
 
 
